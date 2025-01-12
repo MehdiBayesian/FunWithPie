@@ -69,7 +69,7 @@ def get_city_coordinates(city_name):
     Returns:
         dict: Dictionary with 'latitude' and 'longitude' keys or None if not found.
     """
-    # TODO: A comprehensive CSV file (or API call)
+    # TODO: A comprehensive CSV file (or API call) for more cities
     cityname_key = city_name.lower().replace(" ", "_").strip()
     cities = {
         "san_francisco": { "name": "San Francisco", "latitude": 37.7749, "longitude": -122.4194 },
