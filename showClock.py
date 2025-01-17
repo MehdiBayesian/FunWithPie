@@ -3,13 +3,17 @@ import numpy as np
 from datetime import datetime
 
 class Clock:
-    def __init__(self, time, date, title=None, show_seconds=True, show_main_ticks_only=False):
+    def __init__(self, time, date, title=None, show_seconds=True, show_main_ticks_only=False, figure=None, axis=None):
         # Convert the input date and time to a datetime object
         datetime_str = f"{date} {time}"
         self.dt = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
         self.show_seconds = show_seconds
         self.show_main_ticks_only = show_main_ticks_only
         self.title = title
+        if figure is None:
+            self.figure, self.axis = plt.subplots(figsize=(6, 6))
+        else:
+            self.figure, self.axis = figure, axis
 
     def draw_clock_face(self, ax):
         # Draw clock circle
@@ -59,7 +63,7 @@ class Clock:
             
     def draw(self):
         # Create a figure and axis for drawing
-        fig, ax = plt.subplots(figsize=(6,6))
+        fig, ax = self.figure, self.axis
         ax.set_xlim(-1.5, 1.5)
         ax.set_ylim(-1.5, 1.5)
         ax.set_aspect('equal')
@@ -76,16 +80,17 @@ class Clock:
         # Show clock
         plt.savefig('clockNow.jpg')
         plt.show()
+        return ax
 
 
 # Example usage:
-dt_now = datetime.now()
+# dt_now = datetime.now()
 # print(dt_now)
-now_date = dt_now.strftime('%Y-%m-%d')
-now_time = dt_now.strftime('%H:%M:%S')
+# now_date = dt_now.strftime('%Y-%m-%d')
+# now_time = dt_now.strftime('%H:%M:%S')
 
-clock = Clock(time=now_time, date=now_date, 
-              title="Current Time", 
-              show_seconds=True, show_main_ticks_only=False
-             )
-clock.draw()
+# clock = Clock(time=now_time, date=now_date,
+#              title="Current Time",
+#              show_seconds=True, show_main_ticks_only=False
+#             )
+# ax = clock.draw()
