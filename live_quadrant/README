@@ -1,0 +1,6 @@
+if flask is already installed, simply run: 
+
+>> python app.py
+
+And see the results in a browser
+

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="grid-container">
+            <!-- Top Left - Analog Clock -->
+            <div class="quadrant clock-quadrant">
+                <div class="clock-wrapper">
+                    <div class="analog-clock" id="clock">
+                        <!-- Clock hands -->
+                        <div class="hand hour"></div>
+                        <div class="hand minute"></div>
+                        <div class="hand second"></div>
+                        <div class="center-dot"></div>
+                    </div>
+                    <div class="digital-time" id="digital-time"></div>
+                </div>
+            </div>
+
+            <!-- Top Right - Weather -->
+            <div class="quadrant weather-quadrant">
+                <div class="weather-wrapper">
+                    <img src="{{ url_for('static', filename=weather.icon) }}" 
+                         alt="Weather" 
+                         class="weather-icon"
+                         onerror="this.src='{{ url_for('static', filename='default_weather.png') }}'">
+                    <div class="weather-info">
+                        <div class="weather-condition">{{ weather.condition }}</div>
+                        <div class="weather-details">
+                            <span>Humidity: {{ weather.humidity }}%</span>
+                            <span>Wind: {{ weather.wind }} km/h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Left - Temperature -->
+            <div class="quadrant temperature-quadrant">
+                <div class="temperature-wrapper">
+                    <div class="temperature-display">
+                        <span class="temperature-value">{{ temperature }}</span>
+                        <span class="temperature-unit">°C</span>
+                    </div>
+                    <div class="temperature-label">Current Temperature</div>
+                </div>
+            </div>
+
+            <!-- Bottom Right - Family Photo -->
+            <div class="quadrant photo-quadrant">
+                <div class="photo-wrapper">
+                    <img src="{{ url_for('static', filename='family_photo.jpg') }}" 
+                         alt="Family Photo" 
+                         class="family-photo"
+                         onerror="this.src='{{ url_for('static', filename='default_photo.jpg') }}'">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Clock setup function
+        function setupClock() {
+            const clock = document.getElementById('clock');
+            const radius = 120; // Adjust based on clock size
+
+            // Create and position numbers
+            for (let i = 1; i <= 12; i++) {
+                const number = document.createElement('div');
+                number.className = 'number';
+                number.textContent = i;
+
+                // Calculate position
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
+
+                // Position the number
+                number.style.left = `${x + 135}px`; // 150px is half of clock width
+                number.style.top = `${y + 135}px`; // 150px is half of clock height
+                number.style.transform = 'translate(-50%, -50%)';
+
+                clock.appendChild(number);
+            }
+        }
+
+        // Clock update function
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+
+            // Calculate angles
+            const hourAngle = (hours % 12 + minutes / 60) * 30;
+            const minuteAngle = (minutes + seconds / 60) * 6;
+            const secondAngle = (seconds + milliseconds / 1000) * 6;
+
+            // Update hands
+            document.querySelector('.hour').style.transform = `rotate(${hourAngle}deg)`;
+            document.querySelector('.minute').style.transform = `rotate(${minuteAngle}deg)`;
+            document.querySelector('.second').style.transform = `rotate(${secondAngle}deg)`;
+
+            // Update digital display
+            document.getElementById('digital-time').textContent = 
+                now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+        }
+
+        // Data refresh function
+        function refreshData() {
+            fetch('/update_data')
+                .then(response => response.json())
+                .then(data => {
+                    // Update weather
+                    document.querySelector('.weather-condition').textContent = data.weather.condition;
+                    document.querySelector('.weather-icon').src = `/static/${data.weather.icon}`;
+                    document.querySelector('.weather-details').innerHTML = 
+                        `<span>Humidity: ${data.weather.humidity}%</span>
+                         <span>Wind: ${data.weather.wind} km/h</span>`;
+                    
+                    // Update temperature
+                    document.querySelector('.temperature-value').textContent = data.temperature;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Initialize everything when the document loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize clock
+            setupClock();
+            setInterval(updateClock, 50);
+            updateClock();
+
+            // Setup data refresh
+            setInterval(refreshData, 300000); // Refresh every 5 minutes
+
+            // Handle image loading errors
+            document.querySelectorAll('img').forEach(img => {
+                img.addEventListener('error', function() {
+                    this.style.backgroundColor = '#f0f0f0';
+                    this.style.padding = '20px';
+                    this.style.border = '1px solid #ddd';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
