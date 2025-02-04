@@ -1,7 +1,8 @@
+import os
+import psutil
 from flask import Flask, render_template
 from datetime import datetime
-import requests
-import psutil
+import random
 
 app = Flask(__name__)
 
@@ -15,11 +16,20 @@ def get_temperature():
         return 20.0  # Default value
 
 def get_weather():
-    # Replace with actual weather API call
+    # TODO: Replace with actual weather API call
     return {
         'condition': 'Cloudy',
         'temperature': 16
     }
+
+
+
+def get_family_photo():
+    image_folder = 'static/family_photos/'
+    images = [f for f in os.listdir(image_folder) if f.endswith(('.png', '.jpg', '.jpeg'))]
+    return random.choice(images) if images else 'default_photo.jpg'  # Fallback to default
+
+
 
 @app.route('/')
 def dashboard():
@@ -27,9 +37,15 @@ def dashboard():
         'time': datetime.now().strftime('%H:%M:%S'),
         'date': datetime.now().strftime('%Y-%m-%d'),
         'temperature': get_temperature(),
-        'weather': get_weather()
+        'weather': get_weather(),
+        'family_photo': get_family_photo()
     }
     return render_template('dashboard.html', **context)
+
+@app.route('/update_photo')
+def update_photo():
+    return {'photo': get_family_photo()}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
