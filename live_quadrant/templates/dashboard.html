@@ -38,14 +38,23 @@
                 </div>
             </div>
 
-            <!-- Bottom Left - Temperature -->
-            <div class="quadrant temperature-quadrant">
-                <div class="temperature-wrapper">
-                    <div class="temperature-display">
-                        <span class="temperature-value">{{ temperature }}</span>
-                        <span class="temperature-unit">°C</span>
+            <!-- Bottom Left - Random Seinfeld Quote -->
+            <div class="quadrant seinfeld-quadrant">
+                <div class="quote-wrapper">
+                    <div class="quote-content">
+                        <div class="quote-text">
+                            "{{ seinfeld.quote }}"
+                        </div>
+                        <div class="quote-character">
+                            - {{ seinfeld.character }}
+                        </div>
                     </div>
-                    <div class="temperature-label">Current Temperature</div>
+                    <div class="seinfeld-logo">
+                        <img src="{{ url_for('static', filename='seinfeld_logo.jpg') }}" 
+                            alt="Seinfeld" 
+                            class="logo-image"
+                            onerror="this.style.display='none'">
+                    </div>
                 </div>
             </div>
 
@@ -140,11 +149,18 @@
                     document.querySelector('.family-photo').src = `/static/family_photos/${data.photo}`;
                 })
                 .catch(error => console.error('Error loading photo:', error));
+        }        
+        // Seinfeld quote refresh function
+        function refreshSeinfedlQuote() {
+            fetch('/update_seinfeld_quote')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('.quote-text').textContent = `"${data.seinfeld.quote}"`;
+                    document.querySelector('.quote-character').textContent = `- ${data.seinfeld.character}`;
+                })
+                .catch(error => console.error('Error loading Seinfeld quote: Well. Thats a shame...', error));
         }
-        
-        // Refresh photo every 5 minutes
-        // setInterval(refreshPhoto, 300000);
-        
+
 
         // Initialize everything when the document loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -158,6 +174,9 @@
             
             // Refresh photo every 5 seconds
             setInterval(refreshPhoto, 5000);
+
+            // Refresh Seinfeld quote every 5 seconds
+            setInterval(refreshSeinfedlQuote, 5000); // Refresh quote every 5 minutes
 
             // Handle image loading errors
             document.querySelectorAll('img').forEach(img => {
