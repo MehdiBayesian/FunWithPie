@@ -1,5 +1,7 @@
 import os
 import psutil
+import csv
+from typing import Dict, List, Any
 from flask import Flask, render_template
 from datetime import datetime
 import random
@@ -29,36 +31,40 @@ def get_family_photo():
     return random.choice(images) if images else 'default_photo.jpg'  # Fallback to default
 
 
-def get_seinfeld_quote():
-    # Fetch quotes from the Seinfeld API
-    local_quotes = [
-        {
-            "quote": "Yada yada yada",
-            "character": "Elaine"
-        },
-        {
-            "quote": "It's not a lie if you believe it.",
-            "character": "George Costanza"
-        },
-        {
-            "quote": "Yeah, and you're an anti-dentite.",
-            "character": "Cosmo Kramer"
-        },
-        {
-            "quote": "The sea was angry that day my friends.",
-            "character": "George Costanza"
-        },
-        {
-            "quote": "That's a shame.",
-            "character": "Jerry Seinfeld"
-        },
-        {
-            "quote": "Serenity now!",
-            "character": "Frank Costanza"
-        }
-    ]
-    selected = random.choice(local_quotes)
-    return selected
+def get_seinfeld_quote() -> Dict:
+    quotes_csv_file = 'static/seinfeld/seinfeld_quotes.csv'
+    quotes = []
+    try:
+        with open(quotes_csv_file, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                quotes.append({"character": row["character"], "quote": row["quote"]})
+    except Exception as e:
+        # default quotes
+        quotes = [
+            {
+                "quote": "Yada yada yada",
+                "character": "Elaine"
+            },
+            {
+                "quote": "Yeah, and you're an anti-dentite.",
+                "character": "Cosmo Kramer"
+            },
+            {
+                "quote": "The sea was angry that day my friends.",
+                "character": "George Costanza"
+            },
+            {
+                "quote": "That's a shame.",
+                "character": "Jerry Seinfeld"
+            },
+            {
+                "quote": "Serenity now!",
+                "character": "Frank Costanza"
+            }
+        ]
+        
+    return random.choice(quotes)
 
     
 @app.route('/')
