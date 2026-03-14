@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini App Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .app-container {
+            display: flex;
+            gap: 24px;
+            height: calc(100vh - 40px);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar h2 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .mini-app-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mini-app-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+
+        .mini-app-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mini-app-thumb:active {
+            cursor: grabbing;
+        }
+
+        .mini-app-thumb.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .thumb-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .thumb-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .dashboard {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .drop-zone {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone > .widget {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .drop-zone > .widget-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+
+        .drop-zone.drag-over {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #4ade80;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.has-widget {
+            border: none;
+        }
+
+        .drop-zone-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .drop-zone-placeholder span {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .widget {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .widget.active {
+            display: flex;
+        }
+
+        .widget-header {
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .widget-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+
+        .widget-close {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            line-height: 1;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .widget-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .widget-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Quote Widget */
+        .quote-widget {
+            background: linear-gradient(145deg, #1f2937, #111827);
+            padding: 8%;
+            height: 100%;
+        }
+
+        .quote-text {
+            font-size: clamp(0.9rem, 2vw, 1.4rem);
+            line-height: 1.6;
+            color: #e5e7eb;
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .quote-source {
+            font-size: 0.9rem;
+            color: #f87171;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Clock Widget */
+        .clock-widget {
+            background: linear-gradient(145deg, #1e3a5f, #0f172a);
+            height: 100%;
+        }
+
+        .clock {
+            width: 260px;
+            height: 260px;
+            background: #f8fafc;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 0 10px #334155, 0 0 0 14px #f87171, 0 12px 40px rgba(0, 0, 0, 0.4);
+            margin: auto;
+        }
+
+        .clock-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hour-hand, .minute-hand, .second-hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 3px;
+        }
+
+        .hour-hand {
+            width: 6px;
+            height: 45px;
+            background: #1e293b;
+            margin-left: -3px;
+        }
+
+        .minute-hand {
+            width: 4px;
+            height: 65px;
+            background: #475569;
+            margin-left: -2px;
+        }
+
+        .second-hand {
+            width: 2px;
+            height: 70px;
+            background: #f87171;
+            margin-left: -1px;
+        }
+
+        .clock-center {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #f87171;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        /* Nature Widget */
+        .nature-widget {
+            background: #000;
+            height: 100%;
+        }
+
+        .nature-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.8s ease;
+        }
+
+        .nature-overlay {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timer-dot {
+            width: 6px;
+            height: 6px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Weather Widget */
+        .weather-widget {
+            background: linear-gradient(180deg, #3b82f6 0%, #1e40af 100%);
+            padding: 5%;
+            height: 100%;
+        }
+
+        .weather-icon {
+            font-size: clamp(32px, 8vw, 64px);
+            margin-bottom: 8px;
+        }
+
+        .weather-temp {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .weather-desc {
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+        }
+
+        .weather-location {
+            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .weather-date {
+            font-size: clamp(0.6rem, 1.3vw, 0.85rem);
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .weather-details {
+            margin-top: 16px;
+            display: flex;
+            gap: 20px;
+            font-size: clamp(0.6rem, 1.2vw, 0.85rem);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* News Widget */
+        .news-widget {
+            background: #1a1a2e;
+            padding: 3%;
+            height: 100%;
+        }
+
+        .news-item {
+            padding: 3% 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-headline {
+            font-size: clamp(0.7rem, 1.4vw, 0.9rem);
+            line-height: 1.4;
+            color: #e5e7eb;
+            margin-bottom: 4px;
+        }
+
+        .news-source {
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+
+        /* Map Widget */
+        .map-widget {
+            background: #1e3a5f;
+            height: 100%;
+        }
+
+        .world-map {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Calculator Widget */
+        .calc-widget {
+            background: #1f2937;
+            padding: 3%;
+            height: 100%;
+        }
+
+        .calc-display {
+            background: #0f172a;
+            color: #fff;
+            font-size: clamp(1rem, 3vw, 2rem);
+            text-align: right;
+            padding: 8%;
+            border-radius: 8px;
+            margin-bottom: 3%;
+            font-family: 'Courier New', monospace;
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5%;
+            flex: 1;
+        }
+
+        .calc-btn {
+            padding: 5%;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #374151;
+            color: #fff;
+            transition: background 0.2s;
+        }
+
+        .calc-btn:hover {
+            background: #4b5563;
+        }
+
+        .calc-btn.operator {
+            background: #f59e0b;
+        }
+
+        .calc-btn.operator:hover {
+            background: #d97706;
+        }
+
+        .calc-btn.equals {
+            background: #10b981;
+        }
+
+        .calc-btn.clear {
+            background: #ef4444;
+        }
+
+        /* Notes Widget */
+        .notes-widget {
+            background: #fef3c7;
+            padding: 3%;
+            height: 100%;
+        }
+
+        .notes-widget .widget-header {
+            background: rgba(0, 0, 0, 0.05);
+            margin: -3% -3% 3% -3%;
+        }
+
+        .notes-widget .widget-title {
+            color: #92400e;
+        }
+
+        .notes-textarea {
+            flex: 1;
+            width: 100%;
+            background: transparent;
+            border: none;
+            resize: none;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            color: #451a03;
+            font-family: inherit;
+            line-height: 1.6;
+        }
+
+        .notes-textarea::placeholder {
+            color: #b45309;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+        }
+
+        /* Countdown Widget */
+        .countdown-widget {
+            background: linear-gradient(145deg, #7c3aed, #4c1d95);
+            text-align: center;
+            padding: 5%;
+            height: 100%;
+        }
+
+        .countdown-label {
+            font-size: clamp(0.7rem, 1.5vw, 1rem);
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+        }
+
+        .countdown-time {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+
+        @media (max-width: 900px) {
+            .app-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+            }
+            .mini-app-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .mini-app-thumb {
+                flex: 1;
+                min-width: 120px;
+            }
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 200px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <h2>Mini Apps</h2>
+            <div class="mini-app-list">
+                <div class="mini-app-thumb" draggable="true" data-widget="quotes">
+                    <div class="thumb-icon">💬</div>
+                    <div class="thumb-label">Seinfeld Quotes</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="clock">
+                    <div class="thumb-icon">🕐</div>
+                    <div class="thumb-label">Wall Clock</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="nature">
+                    <div class="thumb-icon">🏔️</div>
+                    <div class="thumb-label">Nature Slideshow</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="weather">
+                    <div class="thumb-icon">🌤️</div>
+                    <div class="thumb-label">Weather</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="news">
+                    <div class="thumb-icon">📰</div>
+                    <div class="thumb-label">News Headlines</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="map">
+                    <div class="thumb-icon">🗺️</div>
+                    <div class="thumb-label">World Map</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="calculator">
+                    <div class="thumb-icon">🔢</div>
+                    <div class="thumb-label">Calculator</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="notes">
+                    <div class="thumb-icon">📝</div>
+                    <div class="thumb-label">Sticky Notes</div>
+                </div>
+                <div class="mini-app-thumb" draggable="true" data-widget="countdown">
+                    <div class="thumb-icon">⏱️</div>
+                    <div class="thumb-label">Countdown</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="drop-zone" data-zone="1">
+                <div class="drop-zone-placeholder">
+                    <span>📦</span>
+                    Drop widget here
+                </div>
+            </div>
+            <div class="drop-zone" data-zone="2">
+                <div class="drop-zone-placeholder">
+                    <span>📦</span>
+                    Drop widget here
+                </div>
+            </div>
+            <div class="drop-zone" data-zone="3">
+                <div class="drop-zone-placeholder">
+                    <span>📦</span>
+                    Drop widget here
+                </div>
+            </div>
+            <div class="drop-zone" data-zone="4">
+                <div class="drop-zone-placeholder">
+                    <span>📦</span>
+                    Drop widget here
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quote Widget Template -->
+    <template id="widget-quotes">
+        <div class="widget quote-widget active">
+            <div class="widget-content">
+                <p class="quote-text" id="quoteText"></p>
+                <p class="quote-source" id="quoteSource"></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Clock Widget Template -->
+    <template id="widget-clock">
+        <div class="widget clock-widget active">
+            <div class="widget-content">
+                <div class="clock">
+                    <div class="clock-face">
+                        <div class="hour-hand"></div>
+                        <div class="minute-hand"></div>
+                        <div class="second-hand"></div>
+                        <div class="clock-center"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Nature Widget Template -->
+    <template id="widget-nature">
+        <div class="widget nature-widget active">
+            <div class="widget-content">
+                <img class="nature-image" src="" alt="Nature">
+                <div class="nature-overlay">
+                    <span class="timer-dot"></span>
+                    <span id="natureTimer">10s</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Weather Widget Template -->
+    <template id="widget-weather">
+        <div class="widget weather-widget active">
+            <div class="widget-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div class="weather-icon">☀️</div>
+                <div class="weather-temp" id="weatherTemp">72°</div>
+                <div class="weather-desc" id="weatherDesc">Sunny</div>
+                <div class="weather-location">📍 <span id="weatherLocation">San Mateo, CA</span></div>
+                <div class="weather-date" id="weatherDate">Sat, Mar 14</div>
+                <div class="weather-details">
+                    <span>💧 <span id="weatherHumidity">45%</span></span>
+                    <span>💨 <span id="weatherWind">8 mph</span></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- News Widget Template -->
+    <template id="widget-news">
+        <div class="widget news-widget active">
+            <div class="widget-header">
+                <span class="widget-title">Top Headlines</span>
+            </div>
+            <div class="widget-content" id="newsList" style="overflow-y: auto;">
+            </div>
+        </div>
+    </template>
+
+    <!-- Map Widget Template -->
+    <template id="widget-map">
+        <div class="widget map-widget active">
+            <div class="widget-content">
+                <img class="world-map" src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg" alt="World Map">
+            </div>
+        </div>
+    </template>
+
+    <!-- Calculator Widget Template -->
+    <template id="widget-calculator">
+        <div class="widget calc-widget active">
+            <div class="widget-content">
+                <div class="calc-display" id="calcDisplay">0</div>
+                <div class="calc-buttons">
+                    <button class="calc-btn clear" data-action="clear">C</button>
+                    <button class="calc-btn" data-action="/">÷</button>
+                    <button class="calc-btn" data-action="*">×</button>
+                    <button class="calc-btn" data-action="backspace">⌫</button>
+                    <button class="calc-btn" data-action="7">7</button>
+                    <button class="calc-btn" data-action="8">8</button>
+                    <button class="calc-btn" data-action="9">9</button>
+                    <button class="calc-btn operator" data-action="-">−</button>
+                    <button class="calc-btn" data-action="4">4</button>
+                    <button class="calc-btn" data-action="5">5</button>
+                    <button class="calc-btn" data-action="6">6</button>
+                    <button class="calc-btn operator" data-action="+">+</button>
+                    <button class="calc-btn" data-action="1">1</button>
+                    <button class="calc-btn" data-action="2">2</button>
+                    <button class="calc-btn" data-action="3">3</button>
+                    <button class="calc-btn equals" data-action="=">=</button>
+                    <button class="calc-btn" data-action="0" style="grid-column: span 2;">0</button>
+                    <button class="calc-btn" data-action=".">.</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Notes Widget Template -->
+    <template id="widget-notes">
+        <div class="widget notes-widget active">
+            <div class="widget-header">
+                <span class="widget-title">Quick Notes</span>
+            </div>
+            <div class="widget-content">
+                <textarea class="notes-textarea" placeholder="Type your notes here..."></textarea>
+            </div>
+        </div>
+    </template>
+
+    <!-- Countdown Widget Template -->
+    <template id="widget-countdown">
+        <div class="widget countdown-widget active">
+            <div class="widget-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div class="countdown-label">Time Until Midnight</div>
+                <div class="countdown-time" id="countdownTime">00:00:00</div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // Data
+        const quotes = [
+            { text: "The whole thing is a scheme to get you to buy a subscription to The New Yorker.", source: "Seinfeld" },
+            { text: "I'm not a recluse. I'm a misanthrope.", source: "Seinfeld" },
+            { text: "You know you're getting old when you start having aches and pains instead of just being an idiot.", source: "Seinfeld" },
+            { text: "It's not a lie if you believe it.", source: "Seinfeld" },
+            { text: "The sea is angry. I can feel its wrath.", source: "Seinfeld" },
+            { text: "I don't think I've ever been to a funeral, but I've worn a sport coat.", source: "Seinfeld" },
+            { text: "I have a very good memory. I remember when I was four years old... I remember things that happened when I was one.", source: "Seinfeld" },
+            { text: "You know what your problem is? It's the same as mine: nobody in the world cares.", source: "Seinfeld" },
+            { text: "Why do they call it a 'building' if it's already built?", source: "Seinfeld" },
+            { text: "They're real, and they're spectacular.", source: "Seinfeld" },
+            { text: "No soup for you!", source: "Seinfeld" },
+            { text: "I'm the king of the casual show preview.", source: "Seinfeld" }
+        ];
+
+        const newsHeadlines = [
+            { headline: "AI Continues to Transform Industries Across the Globe", source: "Tech Daily" },
+            { headline: "Global Markets Show Resilience Amid Economic Uncertainty", source: "Finance Times" },
+            { headline: "Scientists Discover New Species in Deep Ocean Exploration", source: "Nature Journal" },
+            { headline: "Climate Summit Reaches Historic Agreement on Emissions", source: "World News" },
+            { headline: "Space Agency Announces Plans for Mars Mission", source: "Space Today" }
+        ];
+
+        // Drag and Drop
+        const thumbs = document.querySelectorAll('.mini-app-thumb');
+        const dropZones = document.querySelectorAll('.drop-zone');
+
+        let draggedWidget = null;
+
+        thumbs.forEach(thumb => {
+            thumb.addEventListener('dragstart', (e) => {
+                draggedWidget = thumb.dataset.widget;
+                thumb.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+
+            thumb.addEventListener('dragend', () => {
+                thumb.classList.remove('dragging');
+                draggedWidget = null;
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                
+                if (draggedWidget) {
+                    placeWidget(zone, draggedWidget);
+                }
+            });
+        });
+
+        function placeWidget(zone, widgetType) {
+            zone.classList.add('has-widget');
+            zone.innerHTML = '';
+            
+            const template = document.getElementById(`widget-${widgetType}`);
+            const widgetHTML = template.innerHTML;
+            const widgetDiv = document.createElement('div');
+            widgetDiv.innerHTML = widgetHTML;
+            zone.appendChild(widgetDiv);
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'widget-close';
+            closeBtn.innerHTML = '×';
+            closeBtn.onclick = () => removeWidget(zone);
+            zone.appendChild(closeBtn);
+
+            initializeWidget(widgetType, zone);
+        }
+
+        function removeWidget(zone) {
+            zone.classList.remove('has-widget');
+            zone.innerHTML = `
+                <div class="drop-zone-placeholder">
+                    <span>📦</span>
+                    Drop widget here
+                </div>
+            `;
+        }
+
+        // Widget Initializers
+        function initializeWidget(type, zone) {
+            switch(type) {
+                case 'quotes': initQuotes(zone); break;
+                case 'clock': initClock(zone); break;
+                case 'nature': initNature(zone); break;
+                case 'weather': initWeather(zone); break;
+                case 'news': initNews(zone); break;
+                case 'calculator': initCalculator(zone); break;
+                case 'notes': break;
+                case 'countdown': initCountdown(zone); break;
+            }
+        }
+
+        function initQuotes(zone) {
+            function showQuote() {
+                const quote = quotes[Math.floor(Math.random() * quotes.length)];
+                zone.querySelector('#quoteText').textContent = `"${quote.text}"`;
+                zone.querySelector('#quoteSource').textContent = `— ${quote.source}`;
+            }
+            showQuote();
+            setInterval(showQuote, 10000);
+        }
+
+        function initClock(zone) {
+            function update() {
+                const now = new Date();
+                const h = now.getHours() % 12;
+                const m = now.getMinutes();
+                const s = now.getSeconds();
+                
+                zone.querySelector('.hour-hand').style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
+                zone.querySelector('.minute-hand').style.transform = `rotate(${m * 6}deg)`;
+                zone.querySelector('.second-hand').style.transform = `rotate(${s * 6}deg)`;
+            }
+            update();
+            setInterval(update, 1000);
+        }
+
+        function initNature(zone) {
+            const img = zone.querySelector('.nature-image');
+            const timerEl = zone.querySelector('#natureTimer');
+            let countdown = 10;
+            
+            function loadImage() {
+                img.src = `https://picsum.photos/800/600?random=${Date.now()}`;
+                countdown = 10;
+            }
+            
+            img.onload = () => {
+                timerEl.textContent = '10s';
+            };
+            loadImage();
+            
+            setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    loadImage();
+                } else {
+                    timerEl.textContent = `${countdown}s`;
+                }
+            }, 1000);
+        }
+
+        function initWeather(zone) {
+            const now = new Date();
+            const hour = now.getHours();
+            let temp, desc;
+            
+            if (hour >= 6 && hour < 12) {
+                temp = 58;
+                desc = 'Partly Cloudy';
+            } else if (hour >= 12 && hour < 17) {
+                temp = 65;
+                desc = 'Mostly Sunny';
+            } else if (hour >= 17 && hour < 20) {
+                temp = 60;
+                desc = 'Clear';
+            } else {
+                temp = 52;
+                desc = 'Overcast';
+            }
+            
+            const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            
+            zone.querySelector('#weatherTemp').textContent = `${temp}°F`;
+            zone.querySelector('#weatherDesc').textContent = desc;
+            zone.querySelector('#weatherLocation').textContent = 'San Mateo, CA';
+            zone.querySelector('#weatherDate').textContent = dateStr;
+            zone.querySelector('#weatherHumidity').textContent = '71%';
+            zone.querySelector('#weatherWind').textContent = '8 mph';
+        }
+
+        function initNews(zone) {
+            const list = zone.querySelector('#newsList');
+            newsHeadlines.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.innerHTML = `
+                    <p class="news-headline">${item.headline}</p>
+                    <p class="news-source">${item.source}</p>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function initCalculator(zone) {
+            const display = zone.querySelector('#calcDisplay');
+            let expression = '0';
+            
+            zone.querySelectorAll('.calc-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.action;
+                    
+                    if (action === 'clear') {
+                        expression = '0';
+                    } else if (action === '=') {
+                        try {
+                            expression = String(eval(expression));
+                        } catch {
+                            expression = 'Error';
+                        }
+                    } else if (action === 'backspace') {
+                        expression = expression.length > 1 ? expression.slice(0, -1) : '0';
+                    } else {
+                        expression = expression === '0' ? action : expression + action;
+                    }
+                    
+                    display.textContent = expression.length > 12 ? 'Error' : expression;
+                });
+            });
+        }
+
+        function initCountdown(zone) {
+            function update() {
+                const now = new Date();
+                const midnight = new Date(now);
+                midnight.setHours(24, 0, 0, 0);
+                const diff = midnight - now;
+                
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                
+                zone.querySelector('#countdownTime').textContent = 
+                    `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            update();
+            setInterval(update, 1000);
+        }
+    </script>
+</body>
+</html>
